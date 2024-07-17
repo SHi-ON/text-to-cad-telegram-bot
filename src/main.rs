@@ -29,7 +29,9 @@ async fn main() {
 enum Command {
     #[command(description = "Displays this text")]
     Help,
-    #[command(description = "Generates a model for the given prompt")]
+    #[command(
+        description = "Generates a 3D model for the given prompt. e.g. /generate Thor's hammer"
+    )]
     Generate(String),
 }
 
@@ -58,15 +60,11 @@ async fn answer(bot: Bot, message: Message, command: Command) -> ResponseResult<
                             bot.send_message(message.chat.id, status_message).await?
                         }
                         Generate::Data(data) => match data {
-                            Some(data_mapping) => match decode_b64(data_mapping) {
-                                Ok(data_bytes) => {
-                                    let file_name = "gear-test.stl";
-                                    let input_file =
-                                        InputFile::memory(Bytes::copy_from_slice(&data_bytes))
-                                            .file_name(file_name);
+                            Some(data_mapping) => match decode_base64(data_mapping) {
+                                Ok(model_file) => {
                                     bot.delete_message(message.chat.id, pending_message.id)
                                         .await?;
-                                    bot.send_document(message.chat.id, input_file).await?
+                                    bot.send_document(message.chat.id, model_file).await?
                                 }
                                 Err(e) => {
                                     bot.delete_message(message.chat.id, pending_message.id)
@@ -100,12 +98,16 @@ async fn answer(bot: Bot, message: Message, command: Command) -> ResponseResult<
     Ok(())
 }
 
-fn decode_b64(data_mapping: HashMap<String, Base64Data>) -> anyhow::Result<Vec<u8>, String> {
-    if let Some(data) = data_mapping.values().next() {
-        Ok(data.clone().into()) // Convert the Base64Data instance to Vec<u8>
-    } else {
-        Err("No data found".to_string())
+fn decode_base64(data_mapping: HashMap<String, Base64Data>) -> anyhow::Result<InputFile, String> {
+    for (model_file_path, model_data) in data_mapping {
+        if let Some(data) = Some(&model_data) {
+            let model_bytes = &data.0;
+            let model_file =
+                InputFile::memory(Bytes::copy_from_slice(model_bytes)).file_name(model_file_path);
+            return Ok(model_file);
+        }
     }
+    Err("No data found".to_string())
 }
 
 async fn generate(prompt: Uuid) -> anyhow::Result<Generate> {
