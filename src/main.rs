@@ -46,53 +46,63 @@ async fn answer(bot: Bot, message: Message, command: Command) -> ResponseResult<
             bot.send_message(message.chat.id, Command::descriptions().to_string())
                 .await?
         }
-        Command::Generate(prompt) => match generate_cad_model(prompt).await {
-            Ok(result) => {
-                bot.send_message(message.chat.id, "Generating...").await?;
-                // Send the pending sticker
-                let sticker_file = InputFile::file_id(STICKER_FILE_ID);
-                let pending_message = bot.send_animation(message.chat.id, sticker_file).await?;
-                match generate(result.id).await {
-                    Ok(generate_output) => match generate_output {
-                        Generate::Message(status_message) => {
-                            bot.delete_message(message.chat.id, pending_message.id)
-                                .await?;
-                            bot.send_message(message.chat.id, status_message).await?
-                        }
-                        Generate::Data(data) => match data {
-                            Some(data_mapping) => match decode_base64(data_mapping) {
-                                Ok(model_file) => {
-                                    bot.delete_message(message.chat.id, pending_message.id)
-                                        .await?;
-                                    bot.send_document(message.chat.id, model_file).await?
-                                }
-                                Err(e) => {
-                                    bot.delete_message(message.chat.id, pending_message.id)
-                                        .await?;
-                                    bot.send_message(
-                                        message.chat.id,
-                                        format!("Error while decoding: {}", e),
-                                    )
-                                    .await?
-                                }
-                            },
-                            None => {
+        Command::Generate(prompt) => {
+            if prompt.is_empty() {
+                bot.send_message(
+                    message.chat.id,
+                    "Empty prompt, explain your thinking in a few words",
+                )
+                .await?;
+                return Ok(());
+            }
+            match generate_cad_model(prompt).await {
+                Ok(result) => {
+                    bot.send_message(message.chat.id, "Generating...").await?;
+                    // Send the pending sticker
+                    let sticker_file = InputFile::file_id(STICKER_FILE_ID);
+                    let pending_message = bot.send_animation(message.chat.id, sticker_file).await?;
+                    match generate(result.id).await {
+                        Ok(generate_output) => match generate_output {
+                            Generate::Message(status_message) => {
                                 bot.delete_message(message.chat.id, pending_message.id)
                                     .await?;
-                                let not_found_message = "Output data not found";
-                                bot.send_message(message.chat.id, not_found_message).await?
+                                bot.send_message(message.chat.id, status_message).await?
                             }
+                            Generate::Data(data) => match data {
+                                Some(data_mapping) => match decode_base64(data_mapping) {
+                                    Ok(model_file) => {
+                                        bot.delete_message(message.chat.id, pending_message.id)
+                                            .await?;
+                                        bot.send_document(message.chat.id, model_file).await?
+                                    }
+                                    Err(e) => {
+                                        bot.delete_message(message.chat.id, pending_message.id)
+                                            .await?;
+                                        bot.send_message(
+                                            message.chat.id,
+                                            format!("Error while decoding: {}", e),
+                                        )
+                                        .await?
+                                    }
+                                },
+                                None => {
+                                    bot.delete_message(message.chat.id, pending_message.id)
+                                        .await?;
+                                    let not_found_message = "Output data not found";
+                                    bot.send_message(message.chat.id, not_found_message).await?
+                                }
+                            },
                         },
-                    },
-                    Err(e) => {
-                        bot.delete_message(message.chat.id, pending_message.id)
-                            .await?;
-                        bot.send_message(message.chat.id, e.to_string()).await?
+                        Err(e) => {
+                            bot.delete_message(message.chat.id, pending_message.id)
+                                .await?;
+                            bot.send_message(message.chat.id, e.to_string()).await?
+                        }
                     }
                 }
+                Err(e) => bot.send_message(message.chat.id, e.to_string()).await?,
             }
-            Err(e) => bot.send_message(message.chat.id, e.to_string()).await?,
-        },
+        }
     };
 
     Ok(())
