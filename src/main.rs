@@ -112,10 +112,13 @@ async fn answer(bot: Bot, message: Message, command: Command) -> ResponseResult<
 fn decode_base64(data_mapping: HashMap<String, Base64Data>) -> anyhow::Result<InputFile, String> {
     for (model_file_path, model_data) in data_mapping {
         if let Some(data) = Some(&model_data) {
-            let model_bytes = &data.0;
-            let model_file =
-                InputFile::memory(Bytes::copy_from_slice(model_bytes)).file_name(model_file_path);
-            return Ok(model_file);
+            // TODO: Choose file format
+            if model_file_path.ends_with(".stl") {
+                let model_bytes = &data.0;
+                let model_file = InputFile::memory(Bytes::copy_from_slice(model_bytes))
+                    .file_name(model_file_path);
+                return Ok(model_file);
+            }
         }
     }
     Err("No data found".to_string())
