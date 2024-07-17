@@ -56,13 +56,13 @@ async fn answer(bot: Bot, message: Message, command: Command) -> ResponseResult<
                 return Ok(());
             }
             println!("Prompt: {}", prompt);
-            match generate_cad_model(prompt).await {
+            match generate_model(prompt).await {
                 Ok(result) => {
                     bot.send_message(message.chat.id, "Generating...").await?;
                     // Send the pending sticker
                     let sticker_file = InputFile::file_id(STICKER_FILE_ID);
                     let pending_message = bot.send_animation(message.chat.id, sticker_file).await?;
-                    match generate(result.id).await {
+                    match retrieve_model(result.id).await {
                         Ok(generate_output) => match generate_output {
                             Generate::Message(status_message) => {
                                 bot.delete_message(message.chat.id, pending_message.id)
@@ -121,24 +121,22 @@ fn decode_base64(data_mapping: HashMap<String, Base64Data>) -> anyhow::Result<In
     Err("No data found".to_string())
 }
 
-async fn generate(prompt: Uuid) -> anyhow::Result<Generate> {
+async fn retrieve_model(prompt: Uuid) -> anyhow::Result<Generate> {
     let client = kittycad::Client::new_from_env();
     loop {
         let response: AsyncApiCallOutput = client.api_calls().get_async_operation(prompt).await?;
         match response {
             AsyncApiCallOutput::TextToCad {
                 status, outputs, ..
-            } => {
-                match status {
-                    ApiCallStatus::Failed => {
-                        return Ok(Generate::Message("Failed to generate!".to_string()))
-                    }
-                    ApiCallStatus::Completed => return Ok(Generate::Data(outputs)),
-                    _ => {
-                        sleep(Duration::from_secs(5));
-                    }
+            } => match status {
+                ApiCallStatus::Failed => {
+                    return Ok(Generate::Message("Failed to generate!".to_string()))
                 }
-            }
+                ApiCallStatus::Completed => return Ok(Generate::Data(outputs)),
+                _ => {
+                    sleep(Duration::from_secs(5));
+                }
+            },
             _ => {
                 return Ok(Generate::Message(
                     "Could not parse the response".to_string(),
@@ -148,7 +146,7 @@ async fn generate(prompt: Uuid) -> anyhow::Result<Generate> {
     }
 }
 
-async fn generate_cad_model(prompt: String) -> anyhow::Result<TextToCad> {
+async fn generate_model(prompt: String) -> anyhow::Result<TextToCad> {
     let client = kittycad::Client::new_from_env();
     let result: TextToCad = client
         .ai()
