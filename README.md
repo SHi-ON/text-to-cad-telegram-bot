@@ -2,14 +2,18 @@
 
 Text-to-CAD Telegram bot based on
 Zoo's [Text-to-CAD](https://zoo.dev/text-to-cad) API.
+Get a 3D model for your given text prompt right in Telegram!
+
+Try the bot on Telegram:
+https://telegram.me/text_to_cad_unofficial_bot
 
 ## Authentication
 
-You need the following variables loaded in your environment:
+You need the following variables loaded in your environment to run your own bot:
 
 * `KITTYCAD_API_TOKEN`: The access token (obtained by logging into your Zoo
   account).
-* `TELOXIDE_TOKEN`: The telegram bot token (obtained from BotFather).
+* `TELOXIDE_TOKEN`: Your telegram bot token (obtained from BotFather).
 
 ### TODO
 
@@ -22,3 +26,8 @@ You need the following variables loaded in your environment:
 ### Contribution
 
 All contributions of any kind are welcome:)
+
+
+### Disclaimer
+
+This repository is not affiliated with Zoo.
