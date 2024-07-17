@@ -72,9 +72,10 @@ async fn answer(bot: Bot, message: Message, command: Command) -> ResponseResult<
                             Generate::Data(data) => match data {
                                 Some(data_mapping) => match decode_base64(data_mapping) {
                                     Ok(model_file) => {
+                                        bot.send_document(message.chat.id, model_file).await?;
                                         bot.delete_message(message.chat.id, pending_message.id)
                                             .await?;
-                                        bot.send_document(message.chat.id, model_file).await?
+                                        bot.send_message(message.chat.id, "").await?
                                     }
                                     Err(e) => {
                                         bot.delete_message(message.chat.id, pending_message.id)
