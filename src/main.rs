@@ -28,7 +28,7 @@ async fn main() {
 )]
 enum Command {
     #[command(description = "Displays this text")]
-    Help,
+    Start,
     #[command(
         description = "Generates a 3D model for the given prompt. e.g. /generate Thor's hammer"
     )]
@@ -42,7 +42,7 @@ enum Generate {
 
 async fn answer(bot: Bot, message: Message, command: Command) -> ResponseResult<()> {
     match command {
-        Command::Help => {
+        Command::Start => {
             bot.send_message(message.chat.id, Command::descriptions().to_string())
                 .await?
         }
@@ -55,6 +55,7 @@ async fn answer(bot: Bot, message: Message, command: Command) -> ResponseResult<
                 .await?;
                 return Ok(());
             }
+            println!("Prompt: {}", prompt);
             match generate_cad_model(prompt).await {
                 Ok(result) => {
                     bot.send_message(message.chat.id, "Generating...").await?;
@@ -128,14 +129,12 @@ async fn generate(prompt: Uuid) -> anyhow::Result<Generate> {
             AsyncApiCallOutput::TextToCad {
                 status, outputs, ..
             } => {
-                println!("{:?}", status);
                 match status {
                     ApiCallStatus::Failed => {
                         return Ok(Generate::Message("Failed to generate!".to_string()))
                     }
                     ApiCallStatus::Completed => return Ok(Generate::Data(outputs)),
                     _ => {
-                        println!("continue the loop");
                         sleep(Duration::from_secs(5));
                     }
                 }
