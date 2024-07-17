@@ -1,17 +1,15 @@
-use base64::{engine, DecodeError, Engine};
 use bytes::Bytes;
 use kittycad::types::base64::Base64Data;
 use kittycad::types::{ApiCallStatus, AsyncApiCallOutput, TextToCad};
 use log::info;
 use std::collections::HashMap;
-use std::mem::size_of;
-use std::os::macos::raw::stat;
-use std::process::Output;
 use std::thread::sleep;
 use std::time::Duration;
-use teloxide::types::True;
 use teloxide::{prelude::*, types::InputFile, utils::command::BotCommands};
 use uuid::Uuid;
+
+const STICKER_FILE_ID: &str =
+    "CAACAgIAAxkBAAEspCVmmAOyoiYGIgXTWhY8HbJ0XBCcngACTgIAAladvQow_mttgTIDbzUE"; // Duck <3
 
 #[tokio::main]
 async fn main() {
@@ -48,42 +46,51 @@ async fn answer(bot: Bot, message: Message, command: Command) -> ResponseResult<
         }
         Command::Generate(prompt) => match generate_cad_model(prompt).await {
             Ok(result) => {
-                bot.send_message(message.chat.id, result.to_string()).await?;
-                // Duck <3
-                let sticker_file_id = "CAACAgIAAxkBAAEspCVmmAOyoiYGIgXTWhY8HbJ0XBCcngACTgIAAladvQow_mttgTIDbzUE";
-                let sticker_file = InputFile::file_id(sticker_file_id);
+                bot.send_message(message.chat.id, "Generating...").await?;
+                // Send the pending sticker
+                let sticker_file = InputFile::file_id(STICKER_FILE_ID);
                 let pending_message = bot.send_animation(message.chat.id, sticker_file).await?;
                 match generate(result.id).await {
-                    Ok(generate_output) => {
-                        match generate_output {
-                            Generate::Message(status_message) => {
-                                bot.send_message(message.chat.id, status_message).await?
-                            }
-                            Generate::Data(data) => match data {
-                                Some(data_mapping) => match decode_b64(data_mapping) {
-                                    Ok(data_bytes) => {
-                                        let file_name = "gear-test.stl";
-                                        let input_file =
-                                            InputFile::memory(Bytes::copy_from_slice(&data_bytes))
-                                                .file_name(file_name);
-                                        bot.send_document(message.chat.id, input_file).await?
-                                    }
-                                    Err(e) => {
-                                        bot.send_message(
-                                            message.chat.id,
-                                            format!("Error while decoding: {}", e),
-                                        )
-                                            .await?
-                                    }
-                                },
-                                None => {
-                                    let not_found_message = "Output data not found";
-                                    bot.send_message(message.chat.id, not_found_message).await?
+                    Ok(generate_output) => match generate_output {
+                        Generate::Message(status_message) => {
+                            bot.delete_message(message.chat.id, pending_message.id)
+                                .await?;
+                            bot.send_message(message.chat.id, status_message).await?
+                        }
+                        Generate::Data(data) => match data {
+                            Some(data_mapping) => match decode_b64(data_mapping) {
+                                Ok(data_bytes) => {
+                                    let file_name = "gear-test.stl";
+                                    let input_file =
+                                        InputFile::memory(Bytes::copy_from_slice(&data_bytes))
+                                            .file_name(file_name);
+                                    bot.delete_message(message.chat.id, pending_message.id)
+                                        .await?;
+                                    bot.send_document(message.chat.id, input_file).await?
+                                }
+                                Err(e) => {
+                                    bot.delete_message(message.chat.id, pending_message.id)
+                                        .await?;
+                                    bot.send_message(
+                                        message.chat.id,
+                                        format!("Error while decoding: {}", e),
+                                    )
+                                    .await?
                                 }
                             },
-                        }
+                            None => {
+                                bot.delete_message(message.chat.id, pending_message.id)
+                                    .await?;
+                                let not_found_message = "Output data not found";
+                                bot.send_message(message.chat.id, not_found_message).await?
+                            }
+                        },
                     },
-                    Err(e) => bot.send_message(message.chat.id, e.to_string()).await?,
+                    Err(e) => {
+                        bot.delete_message(message.chat.id, pending_message.id)
+                            .await?;
+                        bot.send_message(message.chat.id, e.to_string()).await?
+                    }
                 }
             }
             Err(e) => bot.send_message(message.chat.id, e.to_string()).await?,
