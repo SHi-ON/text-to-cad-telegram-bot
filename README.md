@@ -20,7 +20,8 @@ You need the following variables loaded in your environment to run your own bot:
 * [ ] Choose model file format
 * [ ] State management and persistence (e.g. file format preferences)
 * [ ] More testing on the cache hit side
-* [x] Show pending animation
+* [x] Pending animation
+* [ ] Dockerize
 * [ ] Model file name handling (e.g. ellipsize-ing, etc.)
 
 ### Contribution
