@@ -4,11 +4,14 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-dotenv = "0.15.0"
+kittycad = "0.3.8"
 log = "0.4.22"
 pretty_env_logger = "0.5.0"
 reqwest = { version = "0.12.5", features = ["json", "rustls-tls"] }
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0.120"
-teloxide = { version = "0.12.2" , features=["macros"]}
+teloxide = { version = "0.12.2", features = ["macros"] }
 tokio = { version = "1.38.0", features = ["full"] }
+anyhow = "1.0.86"
+uuid = "1.10.0"
+base64 = "0.22.1"
