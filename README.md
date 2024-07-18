@@ -4,8 +4,8 @@ Text-to-CAD Telegram bot based on
 Zoo's [Text-to-CAD](https://zoo.dev/text-to-cad) API.
 Get a 3D model for your given text prompt right in Telegram!
 
-Try the bot on Telegram:
-https://telegram.me/text_to_cad_unofficial_bot
+Try it on Telegram:
+https://t.me/text_to_cad_unofficial_bot
 
 ## Authentication
 
