@@ -75,7 +75,11 @@ async fn answer(bot: Bot, message: Message, command: Command) -> ResponseResult<
                                         bot.send_document(message.chat.id, model_file).await?;
                                         bot.delete_message(message.chat.id, pending_message.id)
                                             .await?;
-                                        bot.send_message(message.chat.id, "").await?
+                                        bot.send_message(
+                                            message.chat.id,
+                                            "Your 3D model is ready👆",
+                                        )
+                                        .await?
                                     }
                                     Err(e) => {
                                         bot.delete_message(message.chat.id, pending_message.id)
