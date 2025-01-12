@@ -157,8 +157,9 @@ async fn retrieve_model(prompt: Uuid) -> anyhow::Result<Generate> {
 async fn generate_model(prompt: String) -> anyhow::Result<TextToCad> {
     let client = kittycad::Client::new_from_env();
     let result: TextToCad = client
-        .ai()
+        .ml()
         .create_text_to_cad(
+            Some(false),
             kittycad::types::FileExportFormat::Stl,
             &kittycad::types::TextToCadCreateBody { prompt },
         )
